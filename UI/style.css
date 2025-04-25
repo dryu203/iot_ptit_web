@@ -1,0 +1,319 @@
+.sensor-item {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.sensor-item img {
+    width: 80px;
+    height: auto;
+    margin-bottom: 10px;
+}
+.chart-container {
+    height: 400px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 2px 16px 0 rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+.switch-container {
+    /* width: 100%; */
+    text-align: center;
+    background: #fff;
+    /* padding: 20px; */
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 25px;
+    font-weight: bold;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* box-sizing: border-box; */
+}
+.switch-container .card {
+    border-radius: 18px;
+    background: #f7f9fa;
+    box-shadow: 0 2px 16px 0 rgba(0,0,0,0.06);
+}
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 32px;
+    margin: 0 10px;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 32px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: #2196F3;
+}
+input:checked + .slider:before {
+    transform: translateX(28px);
+}
+.btn{
+    padding-bottom: 10px;
+}
+
+body {
+    background-color: #f8f9fa;
+    display: flex;
+}
+.sidebar {
+    width: 80px; /* Chiều rộng thu nhỏ */
+    background: #343a40;
+    color: white;
+    height: 100vh;
+    padding: 10px 0; /* Giảm padding */
+    position: fixed;
+    left: 0;
+    top: 0;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.sidebar:hover {
+    width: 200px; /* Chiều rộng khi trỏ chuột vào */
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar ul li {
+    margin: 10px 0;
+    text-align: center; /* Căn giữa biểu tượng */
+    position: relative;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px; /* Kích thước chữ */
+    transition: all 0.3s ease;
+}
+
+.sidebar ul li a span {
+    margin-left: 10px;
+    opacity: 0; /* Ẩn văn bản mặc định */
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar:hover ul li a span {
+    opacity: 1; /* Hiển thị văn bản khi trỏ chuột vào */
+}
+
+.sidebar ul li a:hover {
+    background: #495057;
+}
+
+.main-content {
+    margin-left: 100px; /* Điều chỉnh khoảng cách để phù hợp với sidebar thu nhỏ */
+    flex-grow: 1;
+    padding: 20px;
+}
+
+/* Bóng đèn */
+.light-bulb {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    margin-left: 10px;
+    border-radius: 50%;
+    background-color: #ccc; /* Màu tối khi tắt */
+    box-shadow: none;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.light-bulb.on {
+    background-color: #ffeb3b; /* Màu sáng khi bật */
+    box-shadow: 0 0 10px 5px #ffeb3b;
+}
+
+/* Spinner */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    display: none; /* Ẩn spinner mặc định */
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Thêm hiệu ứng nhấp nháy cho cảnh báo gió */
+.blinking {
+    animation: blinkingWind 1s infinite;
+    color: #e53935;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+@keyframes blinkingWind {
+    0% { opacity: 1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+
+/* Nút điều khiển */
+.light-control {
+    text-align: left;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    position: relative;
+}
+
+.light-control p {
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+.light-loading {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border: 3px solid #bbb;
+    border-top: 3px solid #2196F3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    background: transparent;
+    z-index: 2;
+    display: block;
+    pointer-events: none;
+}
+
+.switch-loading-wrap {
+    position: relative;
+    display: inline-block;
+}
+.light-loading {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border: 3px solid #bbb;
+    border-top: 3px solid #2196F3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    background: transparent;
+    z-index: 2;
+    display: block;
+    pointer-events: none;
+}
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg);}
+    100% { transform: translateY(-50%) rotate(360deg);}
+}
+
+@media (max-width: 991.98px) {
+    .chart-container {
+        min-height: 300px;
+    }
+    .main-content .row.align-items-stretch {
+        flex-direction: column;
+    }
+    .main-content .col-md-8,
+    .main-content .col-md-4 {
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+    .sensor-card {
+        margin-bottom: 1rem;
+    }
+}
+
+.sensor-card {
+    border-radius: 18px;
+    background: #fff;
+    transition: box-shadow 0.2s;
+    box-shadow: 0 2px 16px 0 rgba(0,0,0,0.06);
+}
+.sensor-card:hover {
+    box-shadow: 0 4px 24px 0 rgba(0,0,0,0.12);
+    transform: translateY(-2px) scale(1.02);
+}
+
+.sensor-label {
+    color: #333;
+    margin-bottom: 0.2rem;
+}
+
+.sensor-value {
+    font-weight: bold;
+    color: #222;
+}
+
+.sensor-unit {
+    font-size: 1rem;
+}

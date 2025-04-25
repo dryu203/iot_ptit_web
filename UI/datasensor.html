@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IOT Datasensor</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <ul>
+            <li><a href="dashboard.html">🏠 <span>Bảng điều khiển</span></a></li>
+            <li><a href="datasensor.html">⏲️ <span>Dữ liệu cảm biến</span></a></li>
+            <li><a href="Device-History.html">⏲️ <span>Lịch sử bật tắt thiết bị</span></a></li>
+            <li><a href="User-Profile.html">🧍 <span>Thông tin người dùng</span></a></li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <div class="container mt-5">
+            <h2 class="mb-4">Danh sách dữ liệu cảm biến</h2>
+            <div class="d-flex justify-content-end mb-3">
+                <select id="columnSelect" class="form-select w-25 me-2">
+                    <option value="temperature">Nhiệt độ (°C)</option>
+                    <option value="humidity">Độ ẩm (%)</option>
+                    <option value="light">Ánh sáng (Lux)</option>
+                    <option value="wind">Gió</option>
+                    <option value="timestamp">Thời gian</option>
+                </select>
+                <input type="text" id="searchInput" class="form-control w-25" placeholder="Nhập giá trị tìm kiếm...">
+            </div>
+            
+            <table class="table table-bordered" id="sensorDataTable">
+                <thead>
+                    <tr>
+                        <th>ID <button class="sortButton" data-column="id" data-order="asc">⇅</button></th>
+                        <th>Nhiệt độ (°C) <button class="sortButton" data-column="temperature" data-order="asc">⇅</button></th>
+                        <th>Độ ẩm (%) <button class="sortButton" data-column="humidity" data-order="asc">⇅</button></th>
+                        <th>Ánh sáng (Lux) <button class="sortButton" data-column="light" data-order="asc">⇅</button></th>
+                        <th>Gió <button class="sortButton" data-column="wind" data-order="asc">⇅</button></th>
+                        <th>Thời gian <button class="sortButton" data-column="timestamp" data-order="asc">⇅</button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dữ liệu sẽ được thêm vào đây bằng JavaScript -->
+                </tbody>
+            </table>
+            <div class="d-flex justify-content-between">
+                <div>
+                    <label for="pageSize">Hiển thị:</label>
+                    <select id="pageSize" class="form-select form-select-sm w-auto d-inline">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+                <button id="resetSensors" class="btn btn-danger">XÓA DỮ LIỆU BẢNG</button>
+                <nav>
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    <div id="spinner-overlay" class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+    <script src="/js/scripts.common.js"></script>
+    <script src="/js/scripts.datasensor.js"></script>
+</body>
+</html>

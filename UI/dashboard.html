@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <ul>
+            <li><a href="dashboard.html">🏠 <span>Bảng điều khiển</span></a></li>
+            <li><a href="datasensor.html">⏲️ <span>Dữ liệu cảm biến</span></a></li>
+            <li><a href="Device-History.html">⏲️ <span>Lịch sử bật tắt thiết bị</span></a></li>
+            <li><a href="User-Profile.html">🧍 <span>Thông tin người dùng</span></a></li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <div class="container my-4">
+            <h1 class="mb-4 fw-bold text-center" style="font-size: 3rem;">IoT Dashboard</h1>
+            <div class="row mb-4 justify-content-center g-4">
+                <div class="col-md-3">
+                    <div class="sensor-card card shadow-sm border-0 text-center py-3">
+                        <div class="sensor-icon mb-2" style="font-size:2rem;color:#e53935;">&#128736;</div>
+                        <div class="sensor-label fw-bold" style="font-size:1.2rem;">Nhiệt độ</div>
+                        <div class="sensor-value" id="temperature" style="font-size:2rem;">--</div>
+                        <div class="sensor-unit text-muted">°C</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="sensor-card card shadow-sm border-0 text-center py-3">
+                        <div class="sensor-icon mb-2" style="font-size:2rem;color:#039be5;">&#128167;</div>
+                        <div class="sensor-label fw-bold" style="font-size:1.2rem;">Độ ẩm</div>
+                        <div class="sensor-value" id="humidity" style="font-size:2rem;">--</div>
+                        <div class="sensor-unit text-muted">%</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="sensor-card card shadow-sm border-0 text-center py-3">
+                        <div class="sensor-icon mb-2" style="font-size:2rem;color:#ffd600;">&#9728;</div>
+                        <div class="sensor-label fw-bold" style="font-size:1.2rem;">Ánh sáng</div>
+                        <div class="sensor-value" id="light" style="font-size:2rem;">--</div>
+                        <div class="sensor-unit text-muted">Lux</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="sensor-card card shadow-sm border-0 text-center py-3">
+                        <div class="sensor-icon mb-2" style="font-size:2rem;color:#00bcd4;">&#127788;</div>
+                        <div class="sensor-label fw-bold" style="font-size:1.2rem;">Gió</div>
+                        <div class="sensor-value" id="wind" style="font-size:2rem;">--</div>
+                        <div class="sensor-unit text-muted"></div>
+                        <div id="wind-warning" style="display:none;">CẢNH BÁO: Gió mạnh!</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row align-items-stretch g-4">
+                <div class="col-md-8">
+                    <div class="card shadow-sm border-0 chart-container p-3 h-100">
+                        <canvas id="sensorChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow border-0 p-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: #f7f9fa;">
+                        <div class="w-100">
+                            <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
+                                <span class="fw-semibold" style="font-size:1.1rem;">Đèn 1</span>
+                                <div class="switch-loading-wrap position-relative">
+                                    <label class="toggle-switch ms-2">
+                                        <input type="checkbox" id="light1">
+                                        <span class="slider"></span>
+                                        <span class="light-loading" id="light1-loading" style="display:none;"></span>
+                                    </label>
+                                </div>
+                                <span class="light-bulb ms-2" id="light1-bulb"></span>
+                            </div>
+                            <p class="text-center fw-bold mb-4" style="font-size:1.1rem;">Số lần bật: <span id="light1-count">0</span></p>
+                            <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
+                                <span class="fw-semibold" style="font-size:1.1rem;">Đèn 2</span>
+                                <div class="switch-loading-wrap position-relative">
+                                    <label class="toggle-switch ms-2">
+                                        <input type="checkbox" id="light2">
+                                        <span class="slider"></span>
+                                        <span class="light-loading" id="light2-loading" style="display:none;"></span>
+                                    </label>
+                                </div>
+                                <span class="light-bulb ms-2" id="light2-bulb"></span>
+                            </div>
+                            <p class="text-center fw-bold mb-4" style="font-size:1.1rem;">Số lần bật: <span id="light2-count">0</span></p>
+                            <div class="light-control d-flex align-items-center justify-content-between position-relative">
+                                <span class="fw-semibold" style="font-size:1.1rem;">Đèn 3</span>
+                                <div class="switch-loading-wrap position-relative">
+                                    <label class="toggle-switch ms-2">
+                                        <input type="checkbox" id="light3">
+                                        <span class="slider"></span>
+                                        <span class="light-loading" id="light3-loading" style="display:none;"></span>
+                                    </label>
+                                </div>
+                                <span class="light-bulb ms-2" id="light3-bulb"></span>
+                            </div>
+                            <p class="text-center fw-bold" style="font-size:1.1rem;">Số lần bật: <span id="light3-count">0</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/scripts.common.js"></script>
+    <script src="/js/scripts.dashboard.js"></script>
+</body>
+</html>
