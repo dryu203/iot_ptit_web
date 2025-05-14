@@ -16,8 +16,14 @@ DHT dht(DHTPIN, DHTTYPE);
 #define LED1 14  
 #define LED2 12  
 #define LED3 13 
-#define LED_WIND  27  
+#define LED_WIND 27
 
+// Các hằng số thời gian
+const unsigned long LOOP_INTERVAL = 10;      // 10ms cho vòng lặp chính
+const unsigned long SENSOR_INTERVAL = 1000;  // 1 giây cho cập nhật cảm biến
+const unsigned long BLINK_INTERVAL = 200;    // 200ms cho nháy đèn cảnh báo
+
+unsigned long lastLoopTime = 0;
 unsigned long lastSensorSend = 0;
 unsigned long lastWindBlink = 0;
 bool windAlertState = false;
@@ -28,10 +34,10 @@ const char* ssid = "LQHOMES501";
 const char* password = "LQHOMES1368";
 
 // MQTT broker
-const char* mqttServer = "192.168.51.4"; // Thay bằng địa chỉ MQTT broker của bạn
-const int mqttPort = 2003;                   // Thay bằng cổng MQTT của bạn
-const char* mqttUsername = "dryu";  // Thay bằng username của bạn
-const char* mqttPassword = "251103";  // Thay bằng password của bạn
+const char* mqttServer = "192.168.51.4"; 
+const int mqttPort = 2003;                  
+const char* mqttUsername = "dryu";  
+const char* mqttPassword = "251103";  
 const char* mqttTopicSensors = "iot/sensors";
 const char* mqttTopicDevices = "iot/devices";
 const char* mqttTopicControl = "iot/devices/control";
@@ -62,7 +68,7 @@ void setup_mqtt() {
     Serial.println("Đang kết nối đến MQTT broker...");
     if (mqttClient.connect("ESP32Client", mqttUsername, mqttPassword)) {
       Serial.println("Kết nối MQTT thành công!");
-      mqttClient.subscribe(mqttTopicControl); // Lắng nghe lệnh điều khiển
+      mqttClient.subscribe(mqttTopicControl);  // Lắng nghe lệnh điều khiển
     } else {
       Serial.print("Lỗi kết nối MQTT: ");
       Serial.println(mqttClient.state());
@@ -113,7 +119,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
 void sendSensorData() {
     unsigned long now = millis();
-    if (now - lastSensorSend > 3000) { // Gửi mỗi 3 giây
+  if (now - lastSensorSend > SENSOR_INTERVAL) {
         lastSensorSend = now;
 
         float temperature = dht.readTemperature();
@@ -124,7 +130,7 @@ void sendSensorData() {
 
         // Random wind (0-90)
         int wind = random(0, 91);
-        lastWindValue = wind; // Lưu lại giá trị wind mới nhất
+        lastWindValue = wind; 
 
         // Gửi dữ liệu cảm biến lên MQTT
         DynamicJsonDocument doc(256);
@@ -140,72 +146,41 @@ void sendSensorData() {
 
 void handleWindWarning() {
     unsigned long now = millis();
+    static bool lastWarningState = false;  // Lưu trạng thái cảnh báo trước đó
+    
     if (lastWindValue > 50) {
-        if (now - lastWindBlink > 200) { // Nháy mỗi 200ms
+        if (now - lastWindBlink > BLINK_INTERVAL) {
             lastWindBlink = now;
             windAlertState = !windAlertState;
             digitalWrite(LED_WIND, windAlertState ? HIGH : LOW);
+            
+            // Gửi cảnh báo ngay khi phát hiện gió mạnh hoặc khi trạng thái thay đổi
+            if (!lastWarningState) {
+                DynamicJsonDocument alertDoc(128);
+                alertDoc["wind_warning"] = true;
+                alertDoc["wind_speed"] = lastWindValue;
+                char alertBuffer[128];
+                serializeJson(alertDoc, alertBuffer);
+                mqttClient.publish(mqttTopicSensors, alertBuffer);
+                lastWarningState = true;
+            }
         }
     } else {
         digitalWrite(LED_WIND, LOW);
         windAlertState = false;
+        
+        // Gửi trạng thái bình thường khi gió giảm
+        if (lastWarningState) {
+            DynamicJsonDocument alertDoc(128);
+            alertDoc["wind_warning"] = false;
+            alertDoc["wind_speed"] = lastWindValue;
+            char alertBuffer[128];
+            serializeJson(alertDoc, alertBuffer);
+            mqttClient.publish(mqttTopicSensors, alertBuffer);
+            lastWarningState = false;
+        }
     }
 }
-
-// void sendSensorData() {
-
-//   unsigned long now = millis();
-//       if (now - lastSensorSend > 3000) {
-//           lastSensorSend = now;
-
-//           float temperature = dht.readTemperature();
-//           float humidity = dht.readHumidity();
-//           int analogValue = analogRead(LDR_A0_PIN);
-//           float voltage = analogValue * (3.3 / 4095.0);
-//           float lux = 500 / voltage;
-
-//           // Random wind (0-90)
-//           int wind = random(0, 91);
-
-//           // Gửi dữ liệu cảm biến lên MQTT
-//           DynamicJsonDocument doc(256);
-//           doc["temperature"] = temperature;
-//           doc["humidity"] = humidity;
-//           doc["light"] = lux;
-//           doc["wind"] = wind;
-//           char buffer[256];
-//           serializeJson(doc, buffer);
-//           mqttClient.publish(mqttTopicSensors, buffer);
-
-//           // Xử lý LED cảnh báo gió
-//           if (wind > 50) {
-//               windAlertState = !windAlertState;
-//               digitalWrite(LED_WIND, windAlertState ? HIGH : LOW);
-//           } else {
-//               digitalWrite(LED_WIND, LOW);
-//           }
-//       }
-
-//   // float temperature = dht.readTemperature();
-//   // float humidity = dht.readHumidity();
-//   // int analogValue = analogRead(LDR_A0_PIN);
-//   // float voltage = analogValue * (3.3 / 4095.0);
-//   // float lux = 500 / voltage;
-
-//   // if (!isnan(temperature) && !isnan(humidity)) {
-//   //   DynamicJsonDocument doc(256);
-//   //   doc["temperature"] = temperature;
-//   //   doc["humidity"] = humidity;
-//   //   doc["light"] = lux;
-
-//   //   char buffer[256];
-//   //   serializeJson(doc, buffer);
-//   //   mqttClient.publish(mqttTopicSensors, buffer);
-//   //   Serial.println("Dữ liệu cảm biến đã được gửi qua MQTT.");
-//   // } else {
-//   //   Serial.println("Lỗi đọc cảm biến!");
-//   // }
-// }
 
 void setup() {
   Serial.begin(115200);
@@ -228,12 +203,24 @@ void setup() {
 }
 
 void loop() {
+  unsigned long currentTime = millis();
+
+  // Kiểm tra kết nối MQTT
   if (!mqttClient.connected()) {
     setup_mqtt();
   }
+
+  // Xử lý MQTT
   mqttClient.loop();
 
+  // Gửi dữ liệu cảm biến và xử lý cảnh báo
   sendSensorData();
   handleWindWarning();
-  delay(10); // Gửi dữ liệu mỗi 2 giây
+
+  // Điều chỉnh thời gian giữa các vòng lặp
+  unsigned long elapsedTime = currentTime - lastLoopTime;
+  if (elapsedTime < LOOP_INTERVAL) {
+    delay(LOOP_INTERVAL - elapsedTime);
+  }
+  lastLoopTime = currentTime;
 }

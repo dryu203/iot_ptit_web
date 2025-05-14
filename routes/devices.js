@@ -5,13 +5,22 @@ const router = express.Router();
 
 // API lấy dữ liệu thiết bị mới nhất
 router.get('/latest', (req, res) => {
-    const query = "SELECT device_name, status, timestamp FROM devices ORDER BY id DESC LIMIT 1";
+    const query = `
+        SELECT d1.device_name, d1.status, d1.timestamp
+        FROM devices d1
+        INNER JOIN (
+            SELECT device_name, MAX(id) as max_id
+            FROM devices
+            GROUP BY device_name
+        ) d2 ON d1.device_name = d2.device_name AND d1.id = d2.max_id
+        ORDER BY d1.device_name
+    `;
     db.query(query, (err, results) => {
         if (err) {
             console.error("Lỗi truy vấn MySQL:", err);
             res.status(500).send("Lỗi server");
         } else {
-            res.json(results[0] || { device_name: null, status: null, timestamp: null });
+            res.json(results);
         }
     });
 });
@@ -85,7 +94,7 @@ router.get('/advanced', async (req, res) => {
 router.get('/counts', (req, res) => {
     const query = `
         SELECT device_name, COUNT(*) AS count
-        FROM devices
+        FROM devices 
         WHERE status = 'ON'
         GROUP BY device_name
     `;

@@ -2,20 +2,20 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const mqtt = require('mqtt');
-const db = require('./utils/db'); // Kết nối MySQL
-const mqttClient = require('./utils/mqtt'); // Kết nối MQTT
-const setDeviceStatusCallback = require('./utils/mqtt').setDeviceStatusCallback;
+const { setupMQTT, setDeviceStatusCallback } = require('./utils/mqtt');
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+
+// Middleware
 app.use(cors());
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'UI')));
 
 // Middleware phục vụ favicon
 app.use('/favicon.ico', express.static(path.join(__dirname, 'UI', 'favicon.ico')));
 
-// Import các route API
+// Routes
 app.use('/api/sensors', require('./routes/sensors'));
 app.use('/api/devices', require('./routes/devices'));
 
@@ -24,33 +24,40 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, 'UI', 'dashboard.html'));
 });
 
-// Thêm WebSocket server để phát trạng thái MQTT cho web
+// WebSocket server
 const http = require('http');
 const WebSocket = require('ws');
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server, path: '/ws' });
 
-// Lưu tất cả client WebSocket
+// WebSocket clients management
 let wsClients = [];
+
 wss.on('connection', function connection(ws) {
     wsClients.push(ws);
+    
+    ws.on('error', console.error);
+    
     ws.on('close', () => {
         wsClients = wsClients.filter(client => client !== ws);
     });
 });
 
-// Đăng ký callback để phát WebSocket khi có trạng thái thiết bị mới từ MQTT
-setDeviceStatusCallback(function (deviceMessage) {
-    wsClients.forEach(ws => {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(deviceMessage);
+// Broadcast to all connected clients
+function broadcast(message) {
+    wsClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
         }
     });
-});
+}
 
-// Lắng nghe kết nối
-const PORT = process.env.PORT || 3000;
+// Set up MQTT callback
+setDeviceStatusCallback(broadcast);
+
+// Start server
 server.listen(PORT, () => {
-    console.log(`Server chạy tại http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
+    setupMQTT();
 });

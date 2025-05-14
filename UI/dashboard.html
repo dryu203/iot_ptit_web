@@ -46,12 +46,14 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="sensor-card card shadow-sm border-0 text-center py-3">
+                    <div class="sensor-card card shadow-sm border-0 text-center py-3" id="wind-card">
                         <div class="sensor-icon mb-2" style="font-size:2rem;color:#00bcd4;">&#127788;</div>
                         <div class="sensor-label fw-bold" style="font-size:1.2rem;">Gió</div>
                         <div class="sensor-value" id="wind" style="font-size:2rem;">--</div>
                         <div class="sensor-unit text-muted"></div>
-                        <div id="wind-warning" style="display:none;">CẢNH BÁO: Gió mạnh!</div>
+                        <div id="wind-warning" class="alert alert-danger mt-2 mb-0" style="display:none;">
+                            <strong>⚠️ CẢNH BÁO:</strong> Gió mạnh!
+                        </div>
                     </div>
                 </div>
             </div>

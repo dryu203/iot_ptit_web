@@ -317,3 +317,30 @@ body {
 .sensor-unit {
     font-size: 1rem;
 }
+
+@keyframes windWarning {
+    0% {
+        background-color: #fff;
+        border-color: #dc3545;
+    }
+    50% {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
+    100% {
+        background-color: #fff;
+        border-color: #dc3545;
+    }
+}
+
+.wind-warning-active {
+    animation: windWarning 1s infinite;
+    border: 2px solid #dc3545 !important;
+}
+
+.wind-warning-active .sensor-icon,
+.wind-warning-active .sensor-label,
+.wind-warning-active .sensor-value {
+    color: #dc3545 !important;
+}

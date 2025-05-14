@@ -2,36 +2,40 @@ const express = require('express');
 const db = require('../utils/db');
 const router = express.Router();
 
-// API lưu dữ liệu cảm biến
-router.post('/updatedata', (req, res) => {
+// Validation middleware
+const validateSensorData = (req, res, next) => {
     const { temperature, humidity, light, wind } = req.body;
-
     if (temperature == null || humidity == null || light == null || wind == null) {
-        return res.status(400).json({ error: "Vui lòng cung cấp đầy đủ temperature, humidity và light" });
+        return res.status(400).json({ error: "Missing required sensor data" });
     }
+    next();
+};
 
+// API lưu dữ liệu cảm biến
+router.post('/updatedata', validateSensorData, (req, res) => {
+    const { temperature, humidity, light, wind } = req.body;
     const query = "INSERT INTO sensors (temperature, humidity, light, wind, timestamp) VALUES (?, ?, ?, ?, NOW())";
+    
     db.query(query, [temperature, humidity, light, wind], (err, results) => {
         if (err) {
-            console.error("Lỗi truy vấn MySQL:", err);
-            res.status(500).send("Lỗi server");
-        } else {
-            res.json({ success: true, id: results.insertId });
+            console.error("Database error:", err);
+            return res.status(500).json({ error: "Internal server error" });
         }
+        res.json({ success: true, id: results.insertId });
     });
 });
 
 // API lấy dữ liệu cảm biến mới nhất
 router.get('/latest', (req, res) => {
     const query = "SELECT temperature, humidity, light, wind FROM sensors ORDER BY id DESC LIMIT 1";
+    
     db.query(query, (err, results) => {
         if (err) {
-            console.error("Lỗi truy vấn MySQL:", err);
-            res.status(500).send("Lỗi server");
-        } else {
-            const data = results[0] || { temperature: null, humidity: null, light: null, wind: null };
-            res.json(data);
+            console.error("Database error:", err);
+            return res.status(500).json({ error: "Internal server error" });
         }
+        const data = results[0] || { temperature: null, humidity: null, light: null, wind: null };
+        res.json(data);
     });
 });
 
@@ -40,8 +44,9 @@ router.get('/advanced', async (req, res) => {
     try {
         let { page, limit, sort, order, searchField, searchValue } = req.query;
 
-        page = parseInt(page) || 1;
-        limit = parseInt(limit) || 10;
+        // Validate and sanitize input
+        page = Math.max(1, parseInt(page) || 1);
+        limit = Math.min(100, Math.max(1, parseInt(limit) || 10));
         const offset = (page - 1) * limit;
 
         const allowedFields = ["temperature", "humidity", "light", "wind", "timestamp"];
@@ -50,23 +55,26 @@ router.get('/advanced', async (req, res) => {
 
         if (searchField && allowedFields.includes(searchField) && searchValue) {
             if (searchField === "timestamp") {
-                const datetime = decodeURIComponent(searchValue);
                 searchCondition = `WHERE ${searchField} = ?`;
-                queryParams.push(datetime);
+                queryParams.push(decodeURIComponent(searchValue));
             } else {
                 const value = parseFloat(searchValue);
-                searchCondition = `WHERE ${searchField} = ?`;
-                queryParams.push(value);
+                if (!isNaN(value)) {
+                    searchCondition = `WHERE ${searchField} = ?`;
+                    queryParams.push(value);
+                }
             }
         }
 
-        const sortField = sort && allowedFields.includes(sort) ? sort : "timestamp";
+        const sortField = allowedFields.includes(sort) ? sort : "timestamp";
         const sortOrder = order === "asc" ? "ASC" : "DESC";
 
+        // Get total count
         const countQuery = `SELECT COUNT(*) AS total FROM sensors ${searchCondition}`;
         const [countResult] = await db.promise().query(countQuery, queryParams);
         const total = countResult[0].total;
 
+        // Get paginated data
         const dataQuery = `
             SELECT id, temperature, humidity, light, wind, timestamp 
             FROM sensors 
@@ -78,12 +86,13 @@ router.get('/advanced', async (req, res) => {
         const [dataResult] = await db.promise().query(dataQuery, queryParams);
 
         const totalPages = Math.ceil(total / limit);
-        const pagination = { total, totalPages, currentPage: page };
-
-        res.status(200).json({ pagination, data: dataResult });
+        res.json({
+            pagination: { total, totalPages, currentPage: page },
+            data: dataResult
+        });
     } catch (error) {
-        console.error("Error:", error.message);
-        res.status(500).json({ message: "Lỗi server", error: error.message });
+        console.error("Error in advanced query:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
