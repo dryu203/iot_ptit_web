@@ -6,7 +6,7 @@ let deviceStatusCallback = null;
 
 function setupMQTT() {
     const options = {
-        host: '192.168.51.4',
+        host: '172.20.10.2',
         port: 2003,
         protocol: 'mqtt',
         username: 'dryu',
@@ -57,21 +57,16 @@ function handleSensorData(payload) {
         return;
     }
 
-    const { temperature, humidity, light, wind, wind_warning } = payload;
+    const { temperature, humidity, light } = payload;
     
     if (temperature !== undefined && humidity !== undefined && 
-        light !== undefined && wind !== undefined) {
-        const query = "INSERT INTO sensors (temperature, humidity, light, wind, timestamp) VALUES (?, ?, ?, ?, NOW())";
-        db.query(query, [temperature, humidity, light, wind], (err) => {
+        light !== undefined) {
+        const query = "INSERT INTO sensors (temperature, humidity, light, timestamp) VALUES (?, ?, ?, NOW())";
+        db.query(query, [temperature, humidity, light], (err) => {
             if (err) {
                 console.error("Error saving sensor data:", err);
             }
         });
-
-        // Broadcast wind warning if present
-        if (wind_warning !== undefined) {
-            broadcastMessage(JSON.stringify({ wind_warning, wind_speed: wind }));
-        }
     }
 }
 

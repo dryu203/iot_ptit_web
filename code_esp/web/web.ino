@@ -16,25 +16,35 @@ DHT dht(DHTPIN, DHTTYPE);
 #define LED1 14  
 #define LED2 12  
 #define LED3 13 
-#define LED_WIND 27
+#define TEMP_LED 27  // Đèn cảnh báo nhiệt độ
+#define HUMID_LED 26 // Đèn cảnh báo độ ẩm
+#define LIGHT_LED 32 // Đèn cảnh báo ánh sáng 
 
 // Các hằng số thời gian
 const unsigned long LOOP_INTERVAL = 10;      // 10ms cho vòng lặp chính
 const unsigned long SENSOR_INTERVAL = 1000;  // 1 giây cho cập nhật cảm biến
 const unsigned long BLINK_INTERVAL = 200;    // 200ms cho nháy đèn cảnh báo
 
+// Ngưỡng cảnh báo
+const float TEMP_THRESHOLD = 32.0;    
+const float HUMID_THRESHOLD = 50.0;   
+const float LIGHT_THRESHOLD = 200.0; 
+
 unsigned long lastLoopTime = 0;
 unsigned long lastSensorSend = 0;
-unsigned long lastWindBlink = 0;
-bool windAlertState = false;
-int lastWindValue = 0;
+unsigned long lastTempBlink = 0;
+unsigned long lastHumidBlink = 0;
+unsigned long lastLightBlink = 0;
+bool tempAlertState = false;
+bool humidAlertState = false;
+bool lightAlertState = false;
 
 // Thông tin WiFi
-const char* ssid = "LQHOMES501";
-const char* password = "LQHOMES1368";
+const char* ssid = "aiphone5";
+const char* password = "66668888";
 
 // MQTT broker
-const char* mqttServer = "192.168.51.4"; 
+const char* mqttServer = "172.20.10.2"; 
 const int mqttPort = 2003;                  
 const char* mqttUsername = "dryu";  
 const char* mqttPassword = "251103";  
@@ -68,7 +78,7 @@ void setup_mqtt() {
     Serial.println("Đang kết nối đến MQTT broker...");
     if (mqttClient.connect("ESP32Client", mqttUsername, mqttPassword)) {
       Serial.println("Kết nối MQTT thành công!");
-      mqttClient.subscribe(mqttTopicControl);  // Lắng nghe lệnh điều khiển
+      mqttClient.subscribe(mqttTopicControl);  
     } else {
       Serial.print("Lỗi kết nối MQTT: ");
       Serial.println(mqttClient.state());
@@ -104,7 +114,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       changed = true;
     }
 
-    // Sau khi thực hiện lệnh, gửi trạng thái thực tế về topic iot/devices cho web cập nhật giao diện
+    
     if (changed) {
       DynamicJsonDocument respDoc(128);
       respDoc["device_name"] = device_name;
@@ -126,59 +136,87 @@ void sendSensorData() {
         float humidity = dht.readHumidity();
         int analogValue = analogRead(LDR_A0_PIN);
         float voltage = analogValue * (3.3 / 4095.0);
-        float lux = 500 / voltage;
-
-        // Random wind (0-90)
-        int wind = random(0, 91);
-        lastWindValue = wind; 
+        float R_LDR = 10000.0 * (3.3 - voltage) / voltage; // 10k là điện trở phân áp
+        float lux = 500.0 * pow(10, -log10(R_LDR/10000.0)); // Công thức chuyển đổi từ điện trở sang lux
 
         // Gửi dữ liệu cảm biến lên MQTT
         DynamicJsonDocument doc(256);
         doc["temperature"] = temperature;
         doc["humidity"] = humidity;
         doc["light"] = lux;
-        doc["wind"] = wind;
         char buffer[256];
         serializeJson(doc, buffer);
         mqttClient.publish(mqttTopicSensors, buffer);
     }
 }
 
-void handleWindWarning() {
+void handleAlerts() {
     unsigned long now = millis();
-    static bool lastWarningState = false;  // Lưu trạng thái cảnh báo trước đó
-    
-    if (lastWindValue > 50) {
-        if (now - lastWindBlink > BLINK_INTERVAL) {
-            lastWindBlink = now;
-            windAlertState = !windAlertState;
-            digitalWrite(LED_WIND, windAlertState ? HIGH : LOW);
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
+    int analogValue = analogRead(LDR_A0_PIN);
+    float voltage = analogValue * (3.3 / 4095.0);
+    float R_LDR = 10000.0 * (3.3 - voltage) / voltage; // 10k là điện trở phân áp
+    float lux = 500.0 * pow(10, -log10(R_LDR/10000.0)); // Công thức chuyển đổi từ điện trở sang lux
+
+    // Xử lý cảnh báo nhiệt độ
+    if (temperature > TEMP_THRESHOLD) {
+        if (now - lastTempBlink > BLINK_INTERVAL) {
+            lastTempBlink = now;
+            tempAlertState = !tempAlertState;
+            digitalWrite(TEMP_LED, tempAlertState ? HIGH : LOW);
             
-            // Gửi cảnh báo ngay khi phát hiện gió mạnh hoặc khi trạng thái thay đổi
-            if (!lastWarningState) {
-                DynamicJsonDocument alertDoc(128);
-                alertDoc["wind_warning"] = true;
-                alertDoc["wind_speed"] = lastWindValue;
-                char alertBuffer[128];
-                serializeJson(alertDoc, alertBuffer);
-                mqttClient.publish(mqttTopicSensors, alertBuffer);
-                lastWarningState = true;
-            }
-        }
-    } else {
-        digitalWrite(LED_WIND, LOW);
-        windAlertState = false;
-        
-        // Gửi trạng thái bình thường khi gió giảm
-        if (lastWarningState) {
+            // Gửi cảnh báo nhiệt độ
             DynamicJsonDocument alertDoc(128);
-            alertDoc["wind_warning"] = false;
-            alertDoc["wind_speed"] = lastWindValue;
+            alertDoc["temp_warning"] = true;
+            alertDoc["temperature"] = temperature;
             char alertBuffer[128];
             serializeJson(alertDoc, alertBuffer);
             mqttClient.publish(mqttTopicSensors, alertBuffer);
-            lastWarningState = false;
         }
+    } else {
+        digitalWrite(TEMP_LED, LOW);
+        tempAlertState = false;
+    }
+
+    // Xử lý cảnh báo độ ẩm
+    if (humidity > HUMID_THRESHOLD) {
+        if (now - lastHumidBlink > BLINK_INTERVAL) {
+            lastHumidBlink = now;
+            humidAlertState = !humidAlertState;
+            digitalWrite(HUMID_LED, humidAlertState ? HIGH : LOW);
+            
+            // Gửi cảnh báo độ ẩm
+            DynamicJsonDocument alertDoc(128);
+            alertDoc["humid_warning"] = true;
+            alertDoc["humidity"] = humidity;
+            char alertBuffer[128];
+            serializeJson(alertDoc, alertBuffer);
+            mqttClient.publish(mqttTopicSensors, alertBuffer);
+        }
+    } else {
+        digitalWrite(HUMID_LED, LOW);
+        humidAlertState = false;
+    }
+
+    // Xử lý cảnh báo ánh sáng
+    if (lux < LIGHT_THRESHOLD) {
+        if (now - lastLightBlink > BLINK_INTERVAL) {
+            lastLightBlink = now;
+            lightAlertState = !lightAlertState;
+            digitalWrite(LIGHT_LED, lightAlertState ? HIGH : LOW);
+            
+            // Gửi cảnh báo ánh sáng
+            DynamicJsonDocument alertDoc(128);
+            alertDoc["light_warning"] = true;
+            alertDoc["light"] = lux;
+            char alertBuffer[128];
+            serializeJson(alertDoc, alertBuffer);
+            mqttClient.publish(mqttTopicSensors, alertBuffer);
+        }
+    } else {
+        digitalWrite(LIGHT_LED, LOW);
+        lightAlertState = false;
     }
 }
 
@@ -192,11 +230,16 @@ void setup() {
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
-  pinMode(LED_WIND, OUTPUT);
+  pinMode(TEMP_LED, OUTPUT);
+  pinMode(HUMID_LED, OUTPUT);
+  pinMode(LIGHT_LED, OUTPUT);
 
   pinMode(LDR_D0_PIN, INPUT);
 
-  digitalWrite(LED_WIND, LOW);
+  // Khởi tạo trạng thái LED
+  digitalWrite(TEMP_LED, LOW);
+  digitalWrite(HUMID_LED, LOW);
+  digitalWrite(LIGHT_LED, LOW);
   digitalWrite(LED1, LOW);
   digitalWrite(LED2, LOW);
   digitalWrite(LED3, LOW);
@@ -215,7 +258,7 @@ void loop() {
 
   // Gửi dữ liệu cảm biến và xử lý cảnh báo
   sendSensorData();
-  handleWindWarning();
+  handleAlerts();
 
   // Điều chỉnh thời gian giữa các vòng lặp
   unsigned long elapsedTime = currentTime - lastLoopTime;

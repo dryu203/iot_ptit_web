@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const pendingStates = { "Light 1": false, "Light 2": false, "Light 3": false };
 
     // Các hằng số thời gian
-    const UPDATE_INTERVAL = 1000;  // 1 giây cho mọi cập nhật
+    const UPDATE_INTERVAL = 1000;  
 
     // --- Bóng đèn UI ---
     function updateBulbState(deviceName, status) {
@@ -107,8 +107,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     updateBulbState(data.device_name, data.status);
                 } else if (data.type === "sensor_data") {
                     updateSensorData(data.data);
-                } else if (data.type === "wind_warning") {
-                    updateWindWarning(data.data.wind);
                 }
             } catch (error) {
                 console.error("Error processing WebSocket message:", error);
@@ -130,40 +128,28 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
     // --- Biểu đồ ---
-    const sensorChartCanvas = document.getElementById("sensorChart");
-    let sensorChart = null;
+    const temperatureChartCanvas = document.getElementById("temperatureChart");
+    const humidityChartCanvas = document.getElementById("humidityChart");
+    const lightChartCanvas = document.getElementById("lightChart");
+    let temperatureChart = null;
+    let humidityChart = null;
+    let lightChart = null;
     const MAX_DATA_POINTS = 20; // Giới hạn số điểm dữ liệu hiển thị
 
-    // Hàm cập nhật cảnh báo gió
-    function updateWindWarning(wind) {
-        const windWarning = document.getElementById("wind-warning");
-        const windCard = document.getElementById("wind-card");
-        if (!windWarning || !windCard) return;
-        
-        if (wind > 50) {
-            windWarning.style.display = "block";
-            windCard.classList.add("wind-warning-active");
-        } else {
-            windWarning.style.display = "none";
-            windCard.classList.remove("wind-warning-active");
-        }
-    }
-
-    if (sensorChartCanvas) {
-        const ctx = sensorChartCanvas.getContext("2d");
-        if (window._sensorChartInstance) {
-            window._sensorChartInstance.destroy();
-        }
-        sensorChart = new Chart(ctx, {
+    function createChart(canvas, label, color) {
+        if (!canvas) return null;
+        const ctx = canvas.getContext("2d");
+        return new Chart(ctx, {
             type: "line",
             data: {
                 labels: [],
-                datasets: [
-                    { label: "Nhiệt độ (°C)", data: [], borderColor: "red", fill: false, yAxisID: 'y' },
-                    { label: "Độ ẩm (%)", data: [], borderColor: "blue", fill: false, yAxisID: 'y' },
-                    { label: "Ánh sáng (Lux)", data: [], borderColor: "yellow", fill: false, yAxisID: 'y' },
-                    { label: "Gió", data: [], borderColor: "green", fill: false, yAxisID: 'y' }
-                ]
+                datasets: [{
+                    label: label,
+                    data: [],
+                    borderColor: color,
+                    fill: false,
+                    yAxisID: 'y'
+                }]
             },
             options: {
                 responsive: true,
@@ -187,9 +173,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         });
-        window._sensorChartInstance = sensorChart;
+    }
 
-        function fetchSensorDataForChart() {
+    if (temperatureChartCanvas && humidityChartCanvas && lightChartCanvas) {
+        // Tạo các biểu đồ
+        temperatureChart = createChart(temperatureChartCanvas, "Nhiệt độ", "red");
+        humidityChart = createChart(humidityChartCanvas, "Độ ẩm", "blue");
+        lightChart = createChart(lightChartCanvas, "Ánh sáng", "orange");
+
+        function fetchSensorDataForCharts() {
             fetch("/api/sensors/advanced?limit=" + MAX_DATA_POINTS + "&sort=timestamp&order=desc")
                 .then(r => r.json())
                 .then(data => {
@@ -198,56 +190,97 @@ document.addEventListener("DOMContentLoaded", function () {
                     const reversed = [...data.data].reverse();
                     const labels = reversed.map(i => new Date(i.timestamp).toLocaleTimeString());
                     
-                    // Cập nhật dữ liệu cho biểu đồ
-                    sensorChart.data.labels = labels;
-                    sensorChart.data.datasets[0].data = reversed.map(i => i.temperature || null);
-                    sensorChart.data.datasets[1].data = reversed.map(i => i.humidity || null);
-                    sensorChart.data.datasets[2].data = reversed.map(i => i.light || null);
-                    sensorChart.data.datasets[3].data = reversed.map(i => i.wind || null);
+                    // Cập nhật dữ liệu cho các biểu đồ
+                    [temperatureChart, humidityChart, lightChart].forEach(chart => {
+                        if (chart) {
+                            chart.data.labels = labels;
+                        }
+                    });
+
+                    temperatureChart.data.datasets[0].data = reversed.map(i => i.temperature || null);
+                    humidityChart.data.datasets[0].data = reversed.map(i => i.humidity || null);
+                    lightChart.data.datasets[0].data = reversed.map(i => i.light || null);
                     
-                    sensorChart.update('none'); // Cập nhật không có animation
-                    
-                    // Cập nhật cảnh báo gió
-                    const lastWindData = reversed[reversed.length - 1]?.wind;
-                    if (lastWindData !== undefined) {
-                        updateWindWarning(lastWindData);
-                    }
+                    temperatureChart.update('none');
+                    humidityChart.update('none');
+                    lightChart.update('none');
                 })
                 .catch(e => console.error("Lỗi khi lấy dữ liệu cảm biến cho biểu đồ:", e));
         }
 
-        // Cập nhật dữ liệu cảm biến
+        // Xử lý cảnh báo
+        function updateAlertStatus(type, value) {
+            const bulb = document.getElementById(`${type}-alert-bulb`);
+            const status = document.getElementById(`${type}-alert-status`);
+            if (!bulb || !status) return;
+
+            let isWarning = false;
+            let warningText = '';
+
+            switch(type) {
+                case 'temp':
+                    isWarning = value > 32;
+                    warningText = 'Nhiệt độ cao!';
+                    break;
+                case 'humid':
+                    isWarning = value > 50;
+                    warningText = 'Độ ẩm cao!';
+                    break;
+                case 'light':
+                    isWarning = value < 200;
+                    warningText = 'Ánh sáng mạnh!';
+                    break;
+            }
+
+            if (isWarning) {
+                bulb.classList.add('warning');
+                status.classList.add('warning');
+                status.textContent = warningText;
+            } else {
+                bulb.classList.remove('warning');
+                status.classList.remove('warning');
+                status.textContent = 'Bình thường';
+            }
+        }
+
+        // Cập nhật hàm updateSensorData
         function updateSensorData(data) {
             try {
                 // Cập nhật các giá trị hiển thị
                 document.getElementById('temperature').textContent = data.temperature?.toFixed(1) || 'N/A';
                 document.getElementById('humidity').textContent = data.humidity?.toFixed(1) || 'N/A';
                 document.getElementById('light').textContent = data.light?.toFixed(1) || 'N/A';
-                document.getElementById('wind').textContent = data.wind?.toFixed(1) || 'N/A';
+
+                // Cập nhật trạng thái cảnh báo
+                if (data.temperature !== undefined) updateAlertStatus('temp', data.temperature);
+                if (data.humidity !== undefined) updateAlertStatus('humid', data.humidity);
+                if (data.light !== undefined) updateAlertStatus('light', data.light);
 
                 // Cập nhật biểu đồ
-                if (sensorChart) {
+                if (temperatureChart && humidityChart && lightChart) {
                     const timestamp = new Date().toLocaleTimeString();
                     
                     // Thêm dữ liệu mới
-                    sensorChart.data.labels.push(timestamp);
-                    sensorChart.data.datasets[0].data.push(data.temperature || null);
-                    sensorChart.data.datasets[1].data.push(data.humidity || null);
-                    sensorChart.data.datasets[2].data.push(data.light || null);
-                    sensorChart.data.datasets[3].data.push(data.wind || null);
+                    [temperatureChart, humidityChart, lightChart].forEach(chart => {
+                        if (chart) {
+                            chart.data.labels.push(timestamp);
+                        }
+                    });
+
+                    temperatureChart.data.datasets[0].data.push(data.temperature || null);
+                    humidityChart.data.datasets[0].data.push(data.humidity || null);
+                    lightChart.data.datasets[0].data.push(data.light || null);
 
                     // Giới hạn số điểm dữ liệu
-                    if (sensorChart.data.labels.length > MAX_DATA_POINTS) {
-                        sensorChart.data.labels.shift();
-                        sensorChart.data.datasets.forEach(dataset => dataset.data.shift());
-                    }
-
-                    sensorChart.update('none'); // Cập nhật không có animation
-
-                    // Cập nhật cảnh báo gió
-                    if (data.wind !== undefined) {
-                        updateWindWarning(data.wind);
-                    }
+                    [temperatureChart, humidityChart, lightChart].forEach(chart => {
+                        if (chart) {
+                            if (chart.data.labels.length > MAX_DATA_POINTS) {
+                                chart.data.labels.shift();
+                                chart.data.datasets.forEach(dataset => dataset.data.shift());
+                            }
+                            chart.update('none');
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Error updating sensor data:', error);
@@ -255,8 +288,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Khởi tạo và cập nhật định kỳ
-        fetchSensorDataForChart();
-        setInterval(fetchSensorDataForChart, UPDATE_INTERVAL);
+        fetchSensorDataForCharts();
+        setInterval(fetchSensorDataForCharts, UPDATE_INTERVAL);
     } else {
         console.warn("Không tìm thấy canvas cho biểu đồ.");
     }
@@ -284,14 +317,10 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data) return;
-                ["temperature", "humidity", "light", "wind"].forEach(key => {
+                ["temperature", "humidity", "light"].forEach(key => {
                     const el = document.getElementById(key);
                     if (el) el.innerText = (data[key] !== undefined && data[key] !== null) ? String(data[key]) : "--";
                 });
-                // Cập nhật cảnh báo gió từ dữ liệu API
-                if (data.wind !== undefined) {
-                    updateWindWarning(data.wind);
-                }
             });
     }
     updateSensorDisplayFromAPI();

@@ -13,15 +13,25 @@
     margin-bottom: 10px;
 }
 .chart-container {
-    height: 400px;
+    height: 200px;
     background: #fff;
     padding: 20px;
     border-radius: 18px;
     box-shadow: 0 2px 16px 0 rgba(0,0,0,0.06);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 400px;
+    margin-bottom: 1rem;
+}
+.chart-container h5 {
+    margin-bottom: 1rem;
+    color: #333;
+    font-weight: 600;
+}
+.chart-container canvas {
+    width: 100% !important;
+    height: 150px !important;
 }
 .switch-container {
     /* width: 100%; */
@@ -343,4 +353,36 @@ body {
 .wind-warning-active .sensor-label,
 .wind-warning-active .sensor-value {
     color: #dc3545 !important;
+}
+
+/* Đèn cảnh báo */
+.alert-bulb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #28a745;
+    transition: background-color 0.3s;
+}
+
+.alert-bulb.warning {
+    background-color: #dc3545;
+    animation: blink 1s infinite;
+}
+
+.alert-status {
+    font-size: 0.9rem;
+    color: #6c757d;
+    min-width: 100px;
+    text-align: right;
+}
+
+.alert-status.warning {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
 }

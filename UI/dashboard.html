@@ -21,7 +21,7 @@
         <div class="container my-4">
             <h1 class="mb-4 fw-bold text-center" style="font-size: 3rem;">IoT Dashboard</h1>
             <div class="row mb-4 justify-content-center g-4">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="sensor-card card shadow-sm border-0 text-center py-3">
                         <div class="sensor-icon mb-2" style="font-size:2rem;color:#e53935;">&#128736;</div>
                         <div class="sensor-label fw-bold" style="font-size:1.2rem;">Nhiệt độ</div>
@@ -29,7 +29,7 @@
                         <div class="sensor-unit text-muted">°C</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="sensor-card card shadow-sm border-0 text-center py-3">
                         <div class="sensor-icon mb-2" style="font-size:2rem;color:#039be5;">&#128167;</div>
                         <div class="sensor-label fw-bold" style="font-size:1.2rem;">Độ ẩm</div>
@@ -37,7 +37,7 @@
                         <div class="sensor-unit text-muted">%</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="sensor-card card shadow-sm border-0 text-center py-3">
                         <div class="sensor-icon mb-2" style="font-size:2rem;color:#ffd600;">&#9728;</div>
                         <div class="sensor-label fw-bold" style="font-size:1.2rem;">Ánh sáng</div>
@@ -45,27 +45,34 @@
                         <div class="sensor-unit text-muted">Lux</div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="sensor-card card shadow-sm border-0 text-center py-3" id="wind-card">
-                        <div class="sensor-icon mb-2" style="font-size:2rem;color:#00bcd4;">&#127788;</div>
-                        <div class="sensor-label fw-bold" style="font-size:1.2rem;">Gió</div>
-                        <div class="sensor-value" id="wind" style="font-size:2rem;">--</div>
-                        <div class="sensor-unit text-muted"></div>
-                        <div id="wind-warning" class="alert alert-danger mt-2 mb-0" style="display:none;">
-                            <strong>⚠️ CẢNH BÁO:</strong> Gió mạnh!
-                        </div>
-                    </div>
-                </div>
             </div>
             <div class="row align-items-stretch g-4">
                 <div class="col-md-8">
-                    <div class="card shadow-sm border-0 chart-container p-3 h-100">
-                        <canvas id="sensorChart"></canvas>
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <div class="card shadow-sm border-0 chart-container p-3">
+                                <h5 class="text-center mb-3">Nhiệt độ</h5>
+                                <canvas id="temperatureChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="card shadow-sm border-0 chart-container p-3">
+                                <h5 class="text-center mb-3">Độ ẩm</h5>
+                                <canvas id="humidityChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="card shadow-sm border-0 chart-container p-3">
+                                <h5 class="text-center mb-3">Ánh sáng</h5>
+                                <canvas id="lightChart"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card shadow border-0 p-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: #f7f9fa;">
                         <div class="w-100">
+                            <h5 class="text-center mb-4">Điều khiển đèn</h5>
                             <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
                                 <span class="fw-semibold" style="font-size:1.1rem;">Đèn 1</span>
                                 <div class="switch-loading-wrap position-relative">
@@ -90,7 +97,7 @@
                                 <span class="light-bulb ms-2" id="light2-bulb"></span>
                             </div>
                             <p class="text-center fw-bold mb-4" style="font-size:1.1rem;">Số lần bật: <span id="light2-count">0</span></p>
-                            <div class="light-control d-flex align-items-center justify-content-between position-relative">
+                            <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
                                 <span class="fw-semibold" style="font-size:1.1rem;">Đèn 3</span>
                                 <div class="switch-loading-wrap position-relative">
                                     <label class="toggle-switch ms-2">
@@ -101,7 +108,25 @@
                                 </div>
                                 <span class="light-bulb ms-2" id="light3-bulb"></span>
                             </div>
-                            <p class="text-center fw-bold" style="font-size:1.1rem;">Số lần bật: <span id="light3-count">0</span></p>
+                            <p class="text-center fw-bold mb-4" style="font-size:1.1rem;">Số lần bật: <span id="light3-count">0</span></p>
+
+                            <hr class="my-4">
+                            <h5 class="text-center mb-4">Đèn cảnh báo</h5>
+                            <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
+                                <span class="fw-semibold" style="font-size:1.1rem;">Cảnh báo nhiệt độ</span>
+                                <div class="alert-bulb ms-2" id="temp-alert-bulb"></div>
+                                <div class="alert-status ms-2" id="temp-alert-status">Bình thường</div>
+                            </div>
+                            <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
+                                <span class="fw-semibold" style="font-size:1.1rem;">Cảnh báo độ ẩm</span>
+                                <div class="alert-bulb ms-2" id="humid-alert-bulb"></div>
+                                <div class="alert-status ms-2" id="humid-alert-status">Bình thường</div>
+                            </div>
+                            <div class="light-control mb-4 d-flex align-items-center justify-content-between position-relative">
+                                <span class="fw-semibold" style="font-size:1.1rem;">Cảnh báo ánh sáng</span>
+                                <div class="alert-bulb ms-2" id="light-alert-bulb"></div>
+                                <div class="alert-status ms-2" id="light-alert-status">Bình thường</div>
+                            </div>
                         </div>
                     </div>
                 </div>

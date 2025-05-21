@@ -28,10 +28,9 @@ document.addEventListener("DOMContentLoaded", function () {
     function processSensorData(item) {
         return `<tr>
             <td>${item.id}</td>
-            <td>${item.temperature}</td>
-            <td>${item.humidity}</td>
-            <td>${item.light}</td>
-            <td>${item.wind !== undefined ? item.wind : ""}</td>
+            <td>${item.temperature !== undefined ? item.temperature : ""}</td>
+            <td>${item.humidity !== undefined ? item.humidity : ""}</td>
+            <td>${item.light !== undefined ? item.light : ""}</td>
             <td>${item.timestamp}</td>
         </tr>`;
     }

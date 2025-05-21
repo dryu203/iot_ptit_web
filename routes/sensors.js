@@ -4,8 +4,8 @@ const router = express.Router();
 
 // Validation middleware
 const validateSensorData = (req, res, next) => {
-    const { temperature, humidity, light, wind } = req.body;
-    if (temperature == null || humidity == null || light == null || wind == null) {
+    const { temperature, humidity, light } = req.body;
+    if (temperature == null || humidity == null || light == null) {
         return res.status(400).json({ error: "Missing required sensor data" });
     }
     next();
@@ -13,10 +13,10 @@ const validateSensorData = (req, res, next) => {
 
 // API lưu dữ liệu cảm biến
 router.post('/updatedata', validateSensorData, (req, res) => {
-    const { temperature, humidity, light, wind } = req.body;
-    const query = "INSERT INTO sensors (temperature, humidity, light, wind, timestamp) VALUES (?, ?, ?, ?, NOW())";
+    const { temperature, humidity, light } = req.body;
+    const query = "INSERT INTO sensors (temperature, humidity, light, timestamp) VALUES (?, ?, ?, NOW())";
     
-    db.query(query, [temperature, humidity, light, wind], (err, results) => {
+    db.query(query, [temperature, humidity, light], (err, results) => {
         if (err) {
             console.error("Database error:", err);
             return res.status(500).json({ error: "Internal server error" });
@@ -27,14 +27,14 @@ router.post('/updatedata', validateSensorData, (req, res) => {
 
 // API lấy dữ liệu cảm biến mới nhất
 router.get('/latest', (req, res) => {
-    const query = "SELECT temperature, humidity, light, wind FROM sensors ORDER BY id DESC LIMIT 1";
+    const query = "SELECT temperature, humidity, light FROM sensors ORDER BY id DESC LIMIT 1";
     
     db.query(query, (err, results) => {
         if (err) {
             console.error("Database error:", err);
             return res.status(500).json({ error: "Internal server error" });
         }
-        const data = results[0] || { temperature: null, humidity: null, light: null, wind: null };
+        const data = results[0] || { temperature: null, humidity: null, light: null };
         res.json(data);
     });
 });
@@ -49,7 +49,7 @@ router.get('/advanced', async (req, res) => {
         limit = Math.min(100, Math.max(1, parseInt(limit) || 10));
         const offset = (page - 1) * limit;
 
-        const allowedFields = ["temperature", "humidity", "light", "wind", "timestamp"];
+        const allowedFields = ["temperature", "humidity", "light", "timestamp"];
         let searchCondition = "";
         const queryParams = [];
 
@@ -76,7 +76,7 @@ router.get('/advanced', async (req, res) => {
 
         // Get paginated data
         const dataQuery = `
-            SELECT id, temperature, humidity, light, wind, timestamp 
+            SELECT id, temperature, humidity, light, timestamp 
             FROM sensors 
             ${searchCondition} 
             ORDER BY ${sortField} ${sortOrder} 
